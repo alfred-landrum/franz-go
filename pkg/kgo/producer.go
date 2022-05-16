@@ -587,7 +587,7 @@ func (cl *Client) producerID() (int64, int16, error) {
 					err:   nil,
 				}
 				p.id.Store(id)
-			} else if cl.cfg.txnID == nil && id.id >= 0 && id.epoch < math.MaxInt16-1 {
+			} else if (cl.cfg.txnID == nil && cl.cfg.txnIDOnlyForProducerInit == nil) && id.id >= 0 && id.epoch < math.MaxInt16-1 {
 				// For the idempotent producer, as specified in KIP-360,
 				// if we had an ID, we can bump the epoch locally.
 				// If we are at the max epoch, we will ask for a new ID.
@@ -684,10 +684,15 @@ func (cl *Client) failProducerID(id int64, epoch int16, err error) {
 func (cl *Client) doInitProducerID(lastID int64, lastEpoch int16) (*producerID, bool) {
 	cl.cfg.logger.Log(LogLevelInfo, "initializing producer id")
 	req := kmsg.NewPtrInitProducerIDRequest()
-	req.TransactionalID = cl.cfg.txnID
+	if cl.cfg.txnIDOnlyForProducerInit != nil {
+		req.TransactionalID = cl.cfg.txnIDOnlyForProducerInit
+		cl.cfg.logger.Log(LogLevelInfo, "using txnIDOnlyForProducerInit", "txnID", *cl.cfg.txnIDOnlyForProducerInit)
+	} else {
+		req.TransactionalID = cl.cfg.txnID
+	}
 	req.ProducerID = lastID
 	req.ProducerEpoch = lastEpoch
-	if cl.cfg.txnID != nil {
+	if req.TransactionalID != nil {
 		req.TransactionTimeoutMillis = int32(cl.cfg.txnTimeout.Milliseconds())
 	}
 

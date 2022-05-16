@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kmsg"
+
 	"github.com/twmb/franz-go/pkg/kversion"
 	"github.com/twmb/franz-go/pkg/sasl"
 )
@@ -101,12 +102,13 @@ type cfg struct {
 	// PRODUCER SECTION //
 	//////////////////////
 
-	txnID              *string
-	txnTimeout         time.Duration
-	acks               Acks
-	disableIdempotency bool
-	maxProduceInflight int                // if idempotency is disabled, we allow a configurable max inflight
-	compression        []CompressionCodec // order of preference
+	txnID                    *string
+	txnIDOnlyForProducerInit *string
+	txnTimeout               time.Duration
+	acks                     Acks
+	disableIdempotency       bool
+	maxProduceInflight       int                // if idempotency is disabled, we allow a configurable max inflight
+	compression              []CompressionCodec // order of preference
 
 	defaultProduceTopic string
 	maxRecordBatchBytes int32
@@ -1073,6 +1075,10 @@ func RecordDeliveryTimeout(timeout time.Duration) ProducerOpt {
 // ReadIsolationLevel option if you want to only read committed.
 func TransactionalID(id string) ProducerOpt {
 	return producerOpt{func(cfg *cfg) { cfg.txnID = &id }}
+}
+
+func TxnIDOnlyForProducerInit(id string) ProducerOpt {
+	return producerOpt{func(cfg *cfg) { cfg.txnIDOnlyForProducerInit = &id }}
 }
 
 // TransactionTimeout sets the allowed for a transaction, overriding the
